@@ -5,7 +5,7 @@ import (
 	"os"
 
 	// Укажи название своего модуля из go.mod, например:
-	"windows-agent/services"
+	"windows-metric-agent/services"
 )
 
 func main() {
