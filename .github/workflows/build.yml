@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+# 🔥 ДОБАВИЛИ: Явное разрешение для экшена создавать релизы и загружать файлы
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
