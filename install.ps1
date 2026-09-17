@@ -18,7 +18,7 @@ if (!$isAdmin) {
 $TargetDir = "C:\Program Files\HostPulse"
 $ServiceName = "HostPulseWindowsAgent"
 
-Write-Host "🐳 [HostPulse] Начинаем установку/обновление Windows-агента..." -ForegroundColor Cyan
+Write-Host "[HostPulse] Начинаем установку/обновление Windows-агента..." -ForegroundColor Cyan
 
 # 2. Если старая служба уже существует — останавливаем и удаляем её
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
