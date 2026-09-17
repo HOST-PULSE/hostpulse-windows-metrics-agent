@@ -2,10 +2,9 @@ name: Build and Release Windows Agent
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*' # Сборка запустится автоматически, когда вы создадите тег версии (v1.0.0)
 
-# 🔥 ДОБАВИЛИ: Явное разрешение для экшена создавать релизы и загружать файлы
 permissions:
   contents: write
 
@@ -13,26 +12,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.22'
 
-      - name: Build Windows EXE
+      - name: Build Windows Executable
         run: |
-          # Кросс-компиляция в чистый EXE
-          GOOS=windows GOARCH=amd64 go build -o hostpulse_agent.exe main.go
+          # Компилируем оптимизированный .exe файл под Windows 64-bit
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o windows-metric-agent.exe main.go
 
-      - name: Release Latest Binary
+      - name: Create GitHub Release and Upload Asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: Latest Release
-          draft: false
-          prerelease: false
-          files: hostpulse_agent.exe
+          files: |
+            windows-metric-agent.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

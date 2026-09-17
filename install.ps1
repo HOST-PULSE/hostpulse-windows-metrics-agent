@@ -1,9 +1,9 @@
-# install.ps1
 param (
     [string]$URL = "https://hostpulse.link/",
     [string]$TOKEN = "",
     [string]$PASSWORD = ""
 )
+# Принудительно включаем UTF-8 кодировку для отображения текста без знаков вопроса
 [console]::InputEncoding = [System.Text.Encoding]::UTF8
 [console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
@@ -20,16 +20,14 @@ $ServiceName = "HostPulseWindowsAgent"
 
 Write-Host "🐳 [HostPulse] Начинаем установку/обновление Windows-агента..." -ForegroundColor Cyan
 
-# 2. Если старая служба уже существует — останавливаем и удаляем её (аналог docker rm -f)
+# 2. Если старая служба уже существует — останавливаем и удаляем её
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
     Write-Host "🔄 Обнаружена старая версия. Переустановка..." -ForegroundColor Yellow
     Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
-    # Даем Windows 2 секунды на освобождение файла бинарника
     Start-Sleep -Seconds 2
 
-    # Удаляем службу из реестра Windows
-    $serviceObj = Get-WmiObject -Class Win32_Service -Filter "Name='$ServiceName'"
-    if ($serviceObj) { $serviceObj.Delete() | Out-Null }
+    # Безопасное удаление старой службы через sc.exe
+    & sc.exe delete $ServiceName | Out-Null
 }
 
 # 3. Создаем рабочую директорию, если её нет
@@ -37,43 +35,53 @@ if (!(Test-Path $TargetDir)) {
     New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 }
 
-# 4. Скачиваем свежий скомпилированный EXE-файл агента
-# Замени URL ниже на точный путь к твоему релизу/артефакту в GitHub или на бэкенде
-$AgentDownloadUrl = "https://github.com/HOST-PULSE/hostpulse-windows-metrics-agent"
+# 4. Скачиваем свежий скомпилированный EXE-файл агента из релизов GitHub
+# Исправлено: Ссылка теперь ведет строго на скомпилированный бинарник релиза v1.0.0
+$AgentDownloadUrl = "https://raw.githubusercontent.com/HOST-PULSE/hostpulse-windows-metrics-agent"
+$AgentPath = "$TargetDir\hostpulse_agent.exe"
+
 Write-Host "📥 Скачивание свежего бинарника..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $AgentDownloadUrl -OutFile "$TargetDir\hostpulse_agent.exe" -UseBasicParsing
+try {
+    Invoke-WebRequest -Uri $AgentDownloadUrl -OutFile $AgentPath -UseBasicParsing
+} catch {
+    (New-Object System.Net.WebClient).DownloadFile($AgentDownloadUrl, $AgentPath)
+}
 
-# 5. Скачиваем NSSM (Non-Sucking Service Manager) — утилиту для работы служб на чистом Go
-$NssmUrl = "https://nssm.cc"
-if (!(Test-Path "$TargetDir\nssm.exe")) {
+# 5. Скачиваем NSSM по жесткому абсолютному пути
+$NssmPath = "$TargetDir\nssm.exe"
+if (!(Test-Path $NssmPath)) {
     Write-Host "[INFO] Скачивание системных компонентов службы..." -ForegroundColor Cyan
-
-    # Ссылка ведет на чистый 64-битный исполняемый файл в вашем репозитории
-
     $NssmUrl = "https://raw.githubusercontent.com/HOST-PULSE/hostpulse-windows-metrics-agent/main/nssm.exe"
     try {
-        Invoke-WebRequest -Uri $NssmUrl -OutFile "$TargetDir\nssm.exe" -UseBasicParsing
+        Invoke-WebRequest -Uri $NssmUrl -OutFile $NssmPath -UseBasicParsing
     } catch {
-        # Резервный метод скачивания (старый WebClient), если первый дал сбой
-        (New-Object System.Net.WebClient).DownloadFile($NssmUrl, "$TargetDir\nssm.exe")
+        (New-Object System.Net.WebClient).DownloadFile($NssmUrl, $NssmPath)
     }
 }
+
+# Дополнительная проверка на физическое наличие файлов на диске перед установкой
+if (!(Test-Path $NssmPath) -or !(Test-Path $AgentPath)) {
+    Write-Error "❌ Критическая ошибка: Не все компоненты были успешно скачаны на диск!"
+    exit 1
+}
+
 Write-Host "⚙️ Регистрация фоновой службы Windows..." -ForegroundColor Cyan
 
-# 6. Создаем службу через NSSM
-cd $TargetDir
-.\nssm.exe install $ServiceName "$TargetDir\hostpulse_agent.exe"
-.\nssm.exe set $ServiceName Description "HostPulse Windows System Metrics Agent"
-.\nssm.exe set $ServiceName Start SERVICE_AUTO_START
+# 6. Создаем службу через NSSM по жестким путям (исправлены относительные .\ пути)
+& $NssmPath install $ServiceName $AgentPath | Out-Null
+& $NssmPath set $ServiceName Description "HostPulse Windows System Metrics Agent" | Out-Null
+& $NssmPath set $ServiceName AppDirectory $TargetDir | Out-Null
+& $NssmPath set $ServiceName Start SERVICE_AUTO_START | Out-Null
 
-# 7. 🔥 УСТАНАВЛИВАЕМ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ДЛЯ СЛУЖБЫ
-# NSSM умеет прокидывать env-переменные напрямую в контекст запуска процесса!
+# 7. Устанавливаем переменные окружения для службы
+# Исправлено: Склеиваем массив через знак новой строки, как требует реестр Windows и NSSM
 $EnvPayload = @(
     "HOSTPULSE_METRICS_URL=${URL}api/agent/metrics/",
     "HOSTPULSE_TOKEN=$TOKEN",
     "HOSTPULSE_SECRET=$PASSWORD"
-)
-.\nssm.exe set $ServiceName AppEnvironmentExtra $EnvPayload
+) -join "`n"
+
+& $NssmPath set $ServiceName AppEnvironmentExtra $EnvPayload | Out-Null
 
 # 8. Запускаем службу
 Start-Service -Name $ServiceName
