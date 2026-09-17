@@ -22,7 +22,7 @@ Write-Host "🐳 [HostPulse] Начинаем установку/обновле�
 
 # 2. Если старая служба уже существует — останавливаем и удаляем её
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
-    Write-Host "🔄 Обнаружена старая версия. Переустановка..." -ForegroundColor Yellow
+    Write-Host "Обнаружена старая версия. Переустановка..." -ForegroundColor Yellow
     Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 
@@ -40,7 +40,7 @@ if (!(Test-Path $TargetDir)) {
 $AgentDownloadUrl = "https://raw.githubusercontent.com/HOST-PULSE/hostpulse-windows-metrics-agent/releases/download/v1.0.0/windows-metric-agent.exe"
 $AgentPath = "$TargetDir\hostpulse_agent.exe"
 
-Write-Host "📥 Скачивание свежего бинарника..." -ForegroundColor Cyan
+Write-Host "Скачивание свежего бинарника..." -ForegroundColor Cyan
 try {
     Invoke-WebRequest -Uri $AgentDownloadUrl -OutFile $AgentPath -UseBasicParsing
 } catch {
@@ -61,11 +61,11 @@ if (!(Test-Path $NssmPath)) {
 
 # Дополнительная проверка на физическое наличие файлов на диске перед установкой
 if (!(Test-Path $NssmPath) -or !(Test-Path $AgentPath)) {
-    Write-Error "❌ Критическая ошибка: Не все компоненты были успешно скачаны на диск!"
+    Write-Error "Критическая ошибка: Не все компоненты были успешно скачаны на диск!"
     exit 1
 }
 
-Write-Host "⚙️ Регистрация фоновой службы Windows..." -ForegroundColor Cyan
+Write-Host "Регистрация фоновой службы Windows..." -ForegroundColor Cyan
 
 # 6. Создаем службу через NSSM по жестким путям (исправлены относительные .\ пути)
 & $NssmPath install $ServiceName $AgentPath | Out-Null
@@ -86,5 +86,5 @@ $EnvPayload = @(
 # 8. Запускаем службу
 Start-Service -Name $ServiceName
 
-Write-Host "🟢 [УСПЕХ] Агент HostPulse успешно установлен и запущен как служба Windows!" -ForegroundColor Green
-Write-Host "📊 Метрики будут отправляться в CRM каждые 10 секунд." -ForegroundColor Green
+Write-Host "[УСПЕХ] Агент HostPulse успешно установлен и запущен как служба Windows!" -ForegroundColor Green
+Write-Host "Метрики будут отправляться в CRM каждые 10 секунд." -ForegroundColor Green
