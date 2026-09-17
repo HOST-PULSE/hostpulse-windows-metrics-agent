@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 # 1. Проверяем права Администратора
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (!$isAdmin) {
-    Write-Error "Ошибка: Этот скрипт нужно запускать строго от имени Администратора (Run as Administrator)!"
+     Write-Output "Error: Run as Administrator required!"
     exit
 }
 
