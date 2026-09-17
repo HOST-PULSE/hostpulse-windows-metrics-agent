@@ -21,11 +21,11 @@ type DiskReport struct {
 // MetricsPayload — структура для отправки на Django-бэкенд с типом агента
 type MetricsPayload struct {
 	ServerToken string       `json:"server_token"`
-	AgentType   string       `json:"agent_type"` // Тип агента (windows)
+	AgentType   string       `json:"agent_type"`
 	CPUUsage    float64      `json:"cpu_usage"`
-	MemUsage    float64      `json:"ram_usage"`   // Совпадает с Linux
-	DiskUsage   float64      `json:"disk_usage"`  // Совпадает с Linux (сюда пишем процент диска C:)
-	Disks       []DiskReport `json:"disks"`       // Дополнительный массив, который в Django можно просто игнорировать на старых графиках, либо сохранять отдельно
+	MemUsage    float64      `json:"ram_usage"`   // <-- ПРОВЕРЬ ТУТ: имя поля MemUsage
+	DiskUsage   float64      `json:"disk_usage"`
+	Disks       []DiskReport `json:"disks"`
 }
 
 // Подключаем системные DLL Windows
@@ -76,14 +76,14 @@ func collectAndSend(client *http.Client, url, token string, lastIdle, lastKernel
 		ServerToken: token,
 		AgentType:   "windows-metric-agent",
 		CPUUsage:    cpuUsage,
-		RAMUsage:    getWindowsRAM(),
-		DiskUsage:   cDrivePercent, // <-- ДОБАВИЛИ: Процент диска C: для Django-графика
-		Disks:       disksList,     // <-- Твой массив дисков остается на месте
+		MemUsage:    getWindowsRAM(), // <-- ИСПРАВЬ ТУТ: MemUsage вместо RAMUsage
+		DiskUsage:   cDrivePercent,
+		Disks:       disksList,
 	}
 
 	// Обновили лог, чтобы видеть процент диска C: прямо в консоли
-	fmt.Printf(" [📊 МЕТРИКИ] CPU: %.1f%% | RAM: %.1f%% | Диск C:: %.1f%% | Дисков: %d | Тип: %s\n",
-		payload.CPUUsage, payload.RAMUsage, payload.DiskUsage, len(payload.Disks), payload.AgentType)
+	fmt.Printf(" [📊 МЕТРИКИ] CPU: %.1f%% | RAM: %.1f%% | ...\n",
+		payload.CPUUsage, payload.MemUsage)
 
 	go sendMetrics(client, url, payload)
 
