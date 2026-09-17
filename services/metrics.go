@@ -21,10 +21,11 @@ type DiskReport struct {
 // MetricsPayload — структура для отправки на Django-бэкенд с типом агента
 type MetricsPayload struct {
 	ServerToken string       `json:"server_token"`
-	AgentType   string       `json:"agent_type"` // <-- ДОБАВИЛИ: тип агента
+	AgentType   string       `json:"agent_type"` // Тип агента (windows)
 	CPUUsage    float64      `json:"cpu_usage"`
-	RAMUsage    float64      `json:"ram_usage"`
-	Disks       []DiskReport `json:"disks"`
+	MemUsage    float64      `json:"ram_usage"`   // Совпадает с Linux
+	DiskUsage   float64      `json:"disk_usage"`  // Совпадает с Linux (сюда пишем процент диска C:)
+	Disks       []DiskReport `json:"disks"`       // Дополнительный массив, который в Django можно просто игнорировать на старых графиках, либо сохранять отдельно
 }
 
 // Подключаем системные DLL Windows
@@ -58,16 +59,31 @@ func StartMetricsPoller(backendURL, token string) {
 func collectAndSend(client *http.Client, url, token string, lastIdle, lastKernel, lastUser uint64) (uint64, uint64, uint64) {
 	cpuUsage, nextIdle, nextKernel, nextUser := getWindowsCPU(lastIdle, lastKernel, lastUser)
 
-	payload := MetricsPayload{
-		ServerToken: token,
-		AgentType:   "windows-metric-agent", // <-- ЖЕСТКО ЗАДАЕМ ТИП АГЕНТА В JSON
-		CPUUsage:    cpuUsage,
-		RAMUsage:    getWindowsRAM(),
-		Disks:       getWindowsDisks(),
+	// 1. Вызываем твой сборщик дисков и сохраняем результат в переменную
+	disksList := getWindowsDisks()
+
+	// 2. Ищем диск C: в этом списке, чтобы вытащить его процент
+	var cDrivePercent float64 = 0.0
+	for _, disk := range disksList {
+		if disk.Device == "C:" {
+			cDrivePercent = disk.UsedPercent
+			break
+		}
 	}
 
-	fmt.Printf(" [📊 МЕТРИКИ] CPU: %.1f%% | RAM: %.1f%% | Дисков: %d | Тип: %s\n",
-		payload.CPUUsage, payload.RAMUsage, len(payload.Disks), payload.AgentType)
+	// 3. Наполняем структуру, добавляя поле DiskUsage
+	payload := MetricsPayload{
+		ServerToken: token,
+		AgentType:   "windows-metric-agent",
+		CPUUsage:    cpuUsage,
+		RAMUsage:    getWindowsRAM(),
+		DiskUsage:   cDrivePercent, // <-- ДОБАВИЛИ: Процент диска C: для Django-графика
+		Disks:       disksList,     // <-- Твой массив дисков остается на месте
+	}
+
+	// Обновили лог, чтобы видеть процент диска C: прямо в консоли
+	fmt.Printf(" [📊 МЕТРИКИ] CPU: %.1f%% | RAM: %.1f%% | Диск C:: %.1f%% | Дисков: %d | Тип: %s\n",
+		payload.CPUUsage, payload.RAMUsage, payload.DiskUsage, len(payload.Disks), payload.AgentType)
 
 	go sendMetrics(client, url, payload)
 
