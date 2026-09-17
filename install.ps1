@@ -4,7 +4,8 @@ param (
     [string]$TOKEN = "",
     [string]$PASSWORD = ""
 )
-
+[console]::InputEncoding = [System.Text.Encoding]::UTF8
+[console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
 
 # 1. Проверяем права Администратора
