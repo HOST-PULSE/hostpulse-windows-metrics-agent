@@ -37,7 +37,7 @@ if (!(Test-Path $TargetDir)) {
 
 # 4. Скачиваем свежий скомпилированный EXE-файл агента из релизов GitHub
 # Исправлено: Ссылка теперь ведет строго на скомпилированный бинарник релиза v1.0.0
-$AgentDownloadUrl = "https://github.com/HOST-PULSE/hostpulse-windows-metrics-agent/releases/download/v1.0.1/windows-metric-agent.exe"
+$AgentDownloadUrl = "https://github.com/HOST-PULSE/hostpulse-windows-metrics-agent/releases/download/v1.0.2/windows-metric-agent.exe"
 $AgentPath = "$TargetDir\hostpulse_agent.exe"
 
 Write-Output "Downloading agent binary..."
