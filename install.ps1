@@ -40,7 +40,8 @@ if (!(Test-Path $TargetDir)) {
 $AgentDownloadUrl = "https://github.com/HOST-PULSE/hostpulse-windows-metrics-agent/releases/download/v1.0.0/windows-metric-agent.exe"
 $AgentPath = "$TargetDir\hostpulse_agent.exe"
 
-Write-Host "Скачивание свежего бинарника..." -ForegroundColor Cyan
+Write-Output "Downloading agent binary..."
+
 try {
     Invoke-WebRequest -Uri $AgentDownloadUrl -OutFile $AgentPath -UseBasicParsing
 } catch {
