@@ -62,7 +62,7 @@ if (!(Test-Path $NssmPath)) {
 
 # Дополнительная проверка на физическое наличие файлов на диске перед установкой
 if (!(Test-Path $NssmPath) -or !(Test-Path $AgentPath)) {
-    Write-Error "Критическая ошибка: Не все компоненты были успешно скачаны на диск!"
+    Write-Output "Error: Critical components download failed!"
     exit 1
 }
 
