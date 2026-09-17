@@ -11,18 +11,18 @@ $ErrorActionPreference = "Stop"
 # 1. Проверяем права Администратора
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (!$isAdmin) {
-    Write-Error "❌ Ошибка: Этот скрипт нужно запускать строго от имени Администратора (Run as Administrator)!"
+    Write-Error "Ошибка: Этот скрипт нужно запускать строго от имени Администратора (Run as Administrator)!"
     exit
 }
 
 $TargetDir = "C:\Program Files\HostPulse"
 $ServiceName = "HostPulseWindowsAgent"
 
-Write-Host "[HostPulse] Начинаем установку/обновление Windows-агента..." -ForegroundColor Cyan
+Write-Output "[HostPulse] Starting installation..."
 
 # 2. Если старая служба уже существует — останавливаем и удаляем её
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
-    Write-Host "Обнаружена старая версия. Переустановка..." -ForegroundColor Yellow
+    Write-Output "Old version found. Reinstalling..."
     Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 
@@ -37,7 +37,7 @@ if (!(Test-Path $TargetDir)) {
 
 # 4. Скачиваем свежий скомпилированный EXE-файл агента из релизов GitHub
 # Исправлено: Ссылка теперь ведет строго на скомпилированный бинарник релиза v1.0.0
-$AgentDownloadUrl = "https://raw.githubusercontent.com/HOST-PULSE/hostpulse-windows-metrics-agent/releases/download/v1.0.0/windows-metric-agent.exe"
+$AgentDownloadUrl = "https://github.com/HOST-PULSE/hostpulse-windows-metrics-agent/releases/download/v1.0.0/windows-metric-agent.exe"
 $AgentPath = "$TargetDir\hostpulse_agent.exe"
 
 Write-Host "Скачивание свежего бинарника..." -ForegroundColor Cyan
@@ -50,7 +50,7 @@ try {
 # 5. Скачиваем NSSM по жесткому абсолютному пути
 $NssmPath = "$TargetDir\nssm.exe"
 if (!(Test-Path $NssmPath)) {
-    Write-Host "[INFO] Скачивание системных компонентов службы..." -ForegroundColor Cyan
+    Write-Output "Downloading NSSM component..."
     $NssmUrl = "https://raw.githubusercontent.com/HOST-PULSE/hostpulse-windows-metrics-agent/main/nssm.exe"
     try {
         Invoke-WebRequest -Uri $NssmUrl -OutFile $NssmPath -UseBasicParsing
@@ -65,7 +65,7 @@ if (!(Test-Path $NssmPath) -or !(Test-Path $AgentPath)) {
     exit 1
 }
 
-Write-Host "Регистрация фоновой службы Windows..." -ForegroundColor Cyan
+Write-Output "Registering Windows Service..."
 
 # 6. Создаем службу через NSSM по жестким путям (исправлены относительные .\ пути)
 & $NssmPath install $ServiceName $AgentPath | Out-Null
@@ -86,5 +86,4 @@ $EnvPayload = @(
 # 8. Запускаем службу
 Start-Service -Name $ServiceName
 
-Write-Host "[УСПЕХ] Агент HostPulse успешно установлен и запущен как служба Windows!" -ForegroundColor Green
-Write-Host "Метрики будут отправляться в CRM каждые 10 секунд." -ForegroundColor Green
+Write-Output "[SUCCESS] HostPulse Windows Agent successfully installed and started!"
