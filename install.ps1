@@ -45,14 +45,18 @@ Invoke-WebRequest -Uri $AgentDownloadUrl -OutFile "$TargetDir\hostpulse_agent.ex
 # 5. Скачиваем NSSM (Non-Sucking Service Manager) — утилиту для работы служб на чистом Go
 $NssmUrl = "https://nssm.cc"
 if (!(Test-Path "$TargetDir\nssm.exe")) {
-    Write-Host "📥 Скачивание системных компонентов службы..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $NssmUrl -OutFile "$TargetDir\nssm.zip" -UseBasicParsing
-    Expand-Archive -Path "$TargetDir\nssm.zip" -DestinationPath "$TargetDir\nssm_extracted" -Force
-    Copy-Item "$TargetDir\nssm_extracted\nssm-2.24\win64\nssm.exe" -Destination "$TargetDir\nssm.exe" -Force
-    Remove-Item "$TargetDir\nssm.zip" -Recurse -Force
-    Remove-Item "$TargetDir\nssm_extracted" -Recurse -Force
-}
+    Write-Host "[INFO] Скачивание системных компонентов службы..." -ForegroundColor Cyan
 
+    # Ссылка ведет на чистый 64-битный исполняемый файл в вашем репозитории
+
+    $NssmUrl = "https://raw.githubusercontent.com/HOST-PULSE/hostpulse-windows-metrics-agent/main/nssm.exe"
+    try {
+        Invoke-WebRequest -Uri $NssmUrl -OutFile "$TargetDir\nssm.exe" -UseBasicParsing
+    } catch {
+        # Резервный метод скачивания (старый WebClient), если первый дал сбой
+        (New-Object System.Net.WebClient).DownloadFile($NssmUrl, "$TargetDir\nssm.exe")
+    }
+}
 Write-Host "⚙️ Регистрация фоновой службы Windows..." -ForegroundColor Cyan
 
 # 6. Создаем службу через NSSM
