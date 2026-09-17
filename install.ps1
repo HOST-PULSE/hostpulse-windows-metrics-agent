@@ -77,7 +77,7 @@ Write-Output "Registering Windows Service..."
 # 7. Устанавливаем переменные окружения для службы
 # Исправлено: Склеиваем массив через знак новой строки, как требует реестр Windows и NSSM
 $EnvPayload = @(
-    "HOSTPULSE_METRICS_URL=${URL}api/agent/metrics/",
+    "HOSTPULSE_METRICS_URL=${URL}api/v1/metrics/",
     "HOSTPULSE_TOKEN=$TOKEN",
     "HOSTPULSE_SECRET=$PASSWORD"
 ) -join "`n"
