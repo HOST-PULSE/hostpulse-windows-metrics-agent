@@ -206,6 +206,7 @@ func sendMetrics(client *http.Client, url string, payload MetricsPayload) {
 
 	// 🔥 ТАКЖЕ ДУБЛИРУЕМ ТИП В КЛАССИЧЕСКИЙ HTTP-ЗАГОЛОВОК ДЛЯ ВЬЮХИ ДЖАНГО
 	req.Header.Set("X-Agent-Type", payload.AgentType)
+	req.Header.Set("X-Agent-Token", payload.ServerToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
