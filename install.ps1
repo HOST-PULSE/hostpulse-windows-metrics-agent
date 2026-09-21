@@ -16,7 +16,7 @@ if (!$isAdmin) {
 }
 
 $TargetDir = "C:\Program Files\HostPulse"
-$ServiceName = "HostPulseWindowsAgent"
+$ServiceName = "HostPulseWindowsMetricAgent"
 
 Write-Output "[HostPulse] Starting installation..."
 
