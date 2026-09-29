@@ -74,9 +74,9 @@ func collectAndSend(client *http.Client, url, token string, lastIdle, lastKernel
 	// 3. Наполняем структуру, добавляя поле DiskUsage
 	payload := MetricsPayload{
 		ServerToken: token,
-		AgentType:   "windows-metric-agent",
+		AgentType:   "windows_metric_agent",
 		CPUUsage:    cpuUsage,
-		MemUsage:    getWindowsRAM(), // <-- ИСПРАВЬ ТУТ: MemUsage вместо RAMUsage
+		MemUsage:    getWindowsRAM(),
 		DiskUsage:   cDrivePercent,
 		Disks:       disksList,
 	}
